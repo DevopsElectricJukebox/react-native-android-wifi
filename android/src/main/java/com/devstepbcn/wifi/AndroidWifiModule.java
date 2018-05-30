@@ -183,7 +183,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		for (ScanResult result: results) {
 			String resultString = "" + result.SSID;
 			if (ssid.equals(resultString)) {
-				connected = connectTo(result, password, ssid);
+				connected = connectTo(result.capabilities, password, ssid);
 			}
 		}
 		ssidFound.invoke(connected);
@@ -201,8 +201,14 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		}
 	}
 
+	@ReactMethod
+	public void connectTo(String capabilities, String password, String ssid, String bssid, Callback connected) {
+		boolean connected = connectTo(capabilities, password, ssid, bssid);
+		connected.invoke(connected);
+	}
+
 	//Method to connect to WIFI Network
-	public Boolean connectTo(ScanResult result, String password, String ssid) {
+	public Boolean connectTo(String capabilities, String password, String ssid, String bssid) {
 		//Make new configuration
 		WifiConfiguration conf = new WifiConfiguration();
 		
@@ -210,9 +216,8 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
         conf.SSID = ssid;
     } else {
         conf.SSID = "\"" + ssid + "\"";
-    }
-
-		String capabilities = result.capabilities;
+		}
+		conf.BSSID = bssid;
 		
 		if (capabilities.contains("WPA")  || 
           capabilities.contains("WPA2") || 
