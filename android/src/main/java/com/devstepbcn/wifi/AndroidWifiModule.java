@@ -183,7 +183,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		for (ScanResult result: results) {
 			String resultString = "" + result.SSID;
 			if (ssid.equals(resultString)) {
-				connected = connectTo(result.capabilities, password, ssid);
+				connected = connectTo(result.capabilities, password, ssid, result.bssid);
 			}
 		}
 		ssidFound.invoke(connected);
