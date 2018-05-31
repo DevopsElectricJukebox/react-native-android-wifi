@@ -392,6 +392,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			// private Callback successCallback;
 			// private Callback errorCallback;
 			private WifiManager wifi;
+			private Promise promise;
 
 			public WifiReceiver(final WifiManager wifi, Promise promise) {
 				super();
@@ -421,7 +422,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		            wifiObject.put("level", result.level);
 		            wifiObject.put("timestamp", result.timestamp);
 							} catch (JSONException e) {
-		          	this.errorCallback.invoke(e.getMessage());
+		          	this.promise.reject(e.getMessage());
 								return;
 							}
 							wifiArray.put(wifiObject);
