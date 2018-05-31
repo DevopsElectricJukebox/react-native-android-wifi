@@ -202,9 +202,13 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	}
 
 	@ReactMethod
-	public void connectTo(String capabilities, String password, String ssid, String bssid, Callback connected) {
+	public void connectTo(String capabilities, String password, String ssid, String bssid, Promise connected) {
 		boolean isConnected = connectTo(capabilities, password, ssid, bssid);
-		connected.invoke(isConnected);
+		if (isConnected) {
+			connected.resolve(true);
+		} else {
+			connected.reject("NOT_CONNECTED", "Could not connect to this network.");
+		}
 	}
 
 	//Method to connect to WIFI Network
@@ -360,8 +364,8 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	// This method is similar to `loadWifiList` but it forcefully starts the wifi scanning on android and in the callback fetches the list
 	@ReactMethod
-	public void reScanAndLoadWifiList(Callback successCallback, Callback errorCallback) {
-		WifiReceiver receiverWifi = new WifiReceiver(wifi, successCallback, errorCallback);
+	public void reScanAndLoadWifiList(Promise promise) {
+		WifiReceiver receiverWifi = new WifiReceiver(wifi, promise);
    	getReactApplicationContext().getCurrentActivity().registerReceiver(receiverWifi, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
     wifi.startScan();
 	}
@@ -385,15 +389,16 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	class WifiReceiver extends BroadcastReceiver {
 
-			private Callback successCallback;
-			private Callback errorCallback;
+			// private Callback successCallback;
+			// private Callback errorCallback;
 			private WifiManager wifi;
 
-			public WifiReceiver(final WifiManager wifi, Callback successCallback, Callback errorCallback) {
+			public WifiReceiver(final WifiManager wifi, Promise promise) {
 				super();
-				this.successCallback = successCallback;
-				this.errorCallback = errorCallback;
+				// this.successCallback = successCallback;
+				// this.errorCallback = errorCallback;
 				this.wifi = wifi;
+				this.promise = promise;
  			}
 
 			// This method call when number of wifi connections changed
@@ -422,10 +427,10 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 							wifiArray.put(wifiObject);
 						}
 					}
-					this.successCallback.invoke(wifiArray.toString());
+					this.promise.resolve(wifiArray.toString());
 					return;
 				} catch (IllegalViewOperationException e) {
-					this.errorCallback.invoke(e.getMessage());
+					this.promise.reject("ILLEGAL_VIEW_OPERATION", e.getMessage());
 					return;
 				}
       }
