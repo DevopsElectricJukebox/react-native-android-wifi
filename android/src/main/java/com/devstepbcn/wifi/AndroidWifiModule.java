@@ -207,7 +207,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		if (isConnected == 0) {
 			connected.resolve(true);
 		} else {
-			connected.reject(isConnected);
+			connected.reject("CONNECTION_ERROR", "Connection error. Code: " + Integer.toString(isConnected));
 		}
 	}
 
@@ -285,7 +285,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			return -2;
 		};
 
-		boolean enableNetwork = wifi.enableNetwork(updateNetwork, false);
+		boolean enableNetwork = wifi.enableNetwork(updateNetwork, true);
 		if ( !enableNetwork ) {
 			return -3;
 		};
