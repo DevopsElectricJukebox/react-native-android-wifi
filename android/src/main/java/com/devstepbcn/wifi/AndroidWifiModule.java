@@ -176,18 +176,18 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	//Example:  wifi.findAndConnect(ssid, password);
 	//After 10 seconds, a post telling you whether you are connected will pop up.
 	//Callback returns true if ssid is in the range
-	@ReactMethod
-	public void findAndConnect(String ssid, String password, Callback ssidFound) {
-		List < ScanResult > results = wifi.getScanResults();
-		boolean connected = false;
-		for (ScanResult result: results) {
-			String resultString = "" + result.SSID;
-			if (ssid.equals(resultString)) {
-				connected = connectTo(result.capabilities, password, ssid, result.BSSID);
-			}
-		}
-		ssidFound.invoke(connected);
-	}
+	// @ReactMethod
+	// public void findAndConnect(String ssid, String password, Callback ssidFound) {
+	// 	List < ScanResult > results = wifi.getScanResults();
+	// 	int connected = -1;
+	// 	for (ScanResult result: results) {
+	// 		String resultString = "" + result.SSID;
+	// 		if (ssid.equals(resultString)) {
+	// 			connected = connectTo(result.capabilities, password, ssid, result.BSSID);
+	// 		}
+	// 	}
+	// 	ssidFound.invoke(connected);
+	// }
 
 	//Use this method to check if the device is currently connected to Wifi.
 	@ReactMethod
@@ -203,16 +203,16 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	@ReactMethod
 	public void connectTo(String capabilities, String password, String ssid, String bssid, Promise connected) {
-		boolean isConnected = connectTo(capabilities, password, ssid, bssid);
-		if (isConnected) {
+		int isConnected = connectTo(capabilities, password, ssid, bssid);
+		if (isConnected == 0) {
 			connected.resolve(true);
 		} else {
-			connected.reject("NOT_CONNECTED", "Could not connect to this network.");
+			connected.reject(isConnected);
 		}
 	}
 
 	//Method to connect to WIFI Network
-	public Boolean connectTo(String capabilities, String password, String ssid, String bssid) {
+	public Integer connectTo(String capabilities, String password, String ssid, String bssid) {
 		//Make new configuration
 		WifiConfiguration conf = new WifiConfiguration();
 		
@@ -277,20 +277,20 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		};
 
     if ( updateNetwork == -1 ) {
-      return false;
+      return -1;
     }
 
     boolean disconnect = wifi.disconnect();
 		if ( !disconnect ) {
-			return false;
+			return -2;
 		};
 
 		boolean enableNetwork = wifi.enableNetwork(updateNetwork, false);
 		if ( !enableNetwork ) {
-			return false;
+			return -3;
 		};
 
-		return true;
+		return 0;
 	}
 
 	//Disconnect current Wifi.
