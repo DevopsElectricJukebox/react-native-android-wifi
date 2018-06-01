@@ -285,7 +285,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			return false;
 		};
 
-		boolean enableNetwork = wifi.enableNetwork(updateNetwork, true);
+		boolean enableNetwork = wifi.enableNetwork(updateNetwork, false);
 		if ( !enableNetwork ) {
 			return false;
 		};
