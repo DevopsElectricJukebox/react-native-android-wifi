@@ -301,7 +301,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	//This method will return current ssid
 	@ReactMethod
-	public void getSSID(final Callback callback) {
+	public void getSSID(final Promise promise) {
 		WifiInfo info = wifi.getConnectionInfo();
 
 		// This value should be wrapped in double quotes, so we need to unwrap it.
@@ -310,7 +310,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			ssid = ssid.substring(1, ssid.length() - 1);
 		}
 
-		callback.invoke(ssid);
+		promise.resolve(ssid);
 	}
 
 	//This method will return the basic service set identifier (BSSID) of the current access point
