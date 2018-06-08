@@ -351,18 +351,16 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	//This method will remove the wifi network as per the passed SSID from the device list
 	@ReactMethod
-	public void isRemoveWifiNetwork(String ssid, final Callback callback) {
+	public void removeWifiNetwork(String ssid, final Promise promise) {
     List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
     for (WifiConfiguration wifiConfig : mWifiConfigList) {
 				String comparableSSID = ('"' + ssid + '"'); //Add quotes because wifiConfig.SSID has them
 				if(wifiConfig.SSID.equals(comparableSSID)) {
 					wifi.removeNetwork(wifiConfig.networkId);
 					wifi.saveConfiguration();
-					callback.invoke(true);
-					return;
 				}
     }
-		callback.invoke(false);
+		promise.resolve(true);
 	}
 
 	// This method is similar to `loadWifiList` but it forcefully starts the wifi scanning on android and in the callback fetches the list
