@@ -426,9 +426,13 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			WifiInfo wifiInfo = wifi.getConnectionInfo();
 			if (wifiInfo != null) {
 				WritableNativeMap wifiInfoObject = new WritableNativeMap();
+				String ssid = wifiInfo.getSSID();
+				if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
+					ssid = ssid.substring(1, ssid.length() - 1);
+				}
 
 				wifiInfoObject.putString("bssid", wifiInfo.getBSSID());
-				wifiInfoObject.putString("ssid", wifiInfo.getSSID());
+				wifiInfoObject.putString("ssid", ssid);
 				wifiInfoObject.putString("macAddress", wifiInfo.getMacAddress());
 				wifiInfoObject.putString("ipAddress", longToIP(wifiInfo.getIpAddress()));
 				wifiInfoObject.putInt("rssi", wifiInfo.getRssi());
