@@ -420,6 +420,29 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		}
 	}
 
+	@ReactMethod
+	public void getCurrentNetworkInfo(final Promise promise) {
+		try {
+			WifiInfo wifiInfo = wifi.getConnectionInfo();
+			if (wifiInfo != null) {
+				WritableNativeMap wifiInfoObject = new WritableNativeMap();
+
+				wifiInfoObject.putString("bssid", wifiInfo.getBSSID());
+				wifiInfoObject.putString("ssid", wifiInfo.getSSID());
+				wifiInfoObject.putString("macAddress", wifiInfo.getMacAddress());
+				wifiInfoObject.putString("ipAddress", longToIP(wifiInfo.getIpAddress()));
+				wifiInfoObject.putInt("rssi", wifiInfo.getRssi());
+				wifiInfoObject.putInt("linkSpeed", wifiInfo.getLinkSpeed());
+				
+				promise.resolve(wifiInfoObject);
+			} else {
+				promise.resolve(null);
+			}
+		} catch (Exception e) {
+			promise.reject("Error", e);
+		}
+	}
+
 	public static String longToIP(int longIp){
 		StringBuffer sb = new StringBuffer("");
 		String[] strip=new String[4];
