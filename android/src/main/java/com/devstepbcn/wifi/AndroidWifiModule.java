@@ -12,6 +12,9 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.shell.MainReactPackage;
 import com.facebook.soloader.SoLoader;
 
+import com.facebook.react.bridge.WritableNativeArray;
+import com.facebook.react.bridge.WritableNativeMap;
+
 import android.provider.Settings;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -37,23 +40,19 @@ import java.util.List;
 import java.lang.Thread;
 import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	//WifiManager Instance
 	WifiManager wifi;
 	ReactApplicationContext context;
-	HashMap<String, JSONObject> rememberedNetworks;
+	HashMap<String, WritableNativeMap> rememberedNetworks;
 
 	//Constructor
 	public AndroidWifiModule(ReactApplicationContext reactContext) {
 		super(reactContext);
 		wifi = (WifiManager)reactContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 		context = (ReactApplicationContext) getReactApplicationContext();
-		rememberedNetworks = new HashMap<String, JSONObject>();
+		rememberedNetworks = new HashMap<String, WritableNativeMap>();
 	}
 
 	//Name for module register to use:
@@ -62,30 +61,30 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		return "AndroidWifiModule";
 	}
 
-	//Method to load wifi list into string via Callback. Returns a stringified JSONArray
+	private WritableNativeMap nativeMapFromScanResult(ScanResult result) {
+		WritableNativeMap wifiObject = new WritableNativeMap();
+		wifiObject.putString("SSID", result.SSID);
+		wifiObject.putString("BSSID", result.BSSID);
+		wifiObject.putString("capabilities", result.capabilities);
+		wifiObject.putDouble("frequency", result.frequency);
+		wifiObject.putDouble("level", result.level);
+		wifiObject.putDouble("timestamp", result.timestamp);
+		return wifiObject;
+	}
+
+	//Method to load wifi list into string via Callback.
 	@ReactMethod
 	public void loadWifiList(Promise promise) {
-		try {
-			List <ScanResult> results = wifi.getScanResults();
-			JSONArray wifiArray = new JSONArray();
-
-			for (ScanResult result: results) {
-				JSONObject wifiObject = new JSONObject();
-				if(!result.SSID.equals("")){
-          wifiObject.put("SSID", result.SSID);
-          wifiObject.put("BSSID", result.BSSID);
-          wifiObject.put("capabilities", result.capabilities);
-          wifiObject.put("frequency", result.frequency);
-          wifiObject.put("level", result.level);
-          wifiObject.put("timestamp", result.timestamp);
-					wifiArray.put(wifiObject);
-					this.rememberedNetworks.put(result.BSSID, wifiObject);
-				}
+		List<ScanResult> results = wifi.getScanResults();
+		WritableNativeArray wifiArray = new WritableNativeArray();
+		for (ScanResult result: results) {
+			WritableNativeMap wifiObject = new WritableNativeMap();
+			if(!result.SSID.equals("")){
+				wifiArray.pushMap(nativeMapFromScanResult(result));
+				this.rememberedNetworks.put(result.BSSID, wifiObject);
 			}
-			promise.resolve(wifiArray.toString());
-		} catch (JSONException e) {
-			promise.reject(e.getMessage());
 		}
+		promise.resolve(wifiArray);
 	}
 
 	//Method to force wifi usage if the user needs to send requests via wifi
@@ -365,7 +364,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	// This method is similar to `loadWifiList` but it forcefully starts the wifi scanning on android and in the callback fetches the list
 	@ReactMethod
-	public void reScanAndLoadWifiList(Promise promise) {
+	public void rescanAndLoadWifiList(Promise promise) {
 		WifiReceiver receiverWifi = new WifiReceiver(wifi, promise, this.rememberedNetworks);
    	getReactApplicationContext().getCurrentActivity().registerReceiver(receiverWifi, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
     wifi.startScan();
@@ -373,78 +372,43 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	@ReactMethod
 	public void getKnownNetworks(Promise promise) {
-		try {
-			JSONObject wifiObject = new JSONObject();
-			for(HashMap.Entry<String, JSONObject> network : this.rememberedNetworks.entrySet()) {
-				wifiObject.put(network.getKey(), network.getValue());
-			}
-			promise.resolve(wifiObject.toString());
-		} catch (JSONException error) {
-			promise.reject(error.getMessage());
+		WritableNativeMap wifiObject = new WritableNativeMap();
+		for (HashMap.Entry<String, WritableNativeMap> network : this.rememberedNetworks.entrySet()) {
+			wifiObject.putMap(network.getKey(), network.getValue());
 		}
+		promise.resolve(wifiObject);
 	}
 
 	@ReactMethod
 	public void getConfiguredNetworks(Promise promise) {
-		try {
-			List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
-			JSONArray wifiArray = new JSONArray();
-			for (WifiConfiguration wifiConfig : mWifiConfigList) {
-				JSONObject wifiObject = new JSONObject();
-				if(!wifiConfig.SSID.equals("")){
-					String ssid = wifiConfig.SSID;
-					if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
-						ssid = ssid.substring(1, ssid.length() - 1);
-					}
-					wifiObject.put("ssid", ssid);
-					wifiObject.put("bssid", wifiConfig.BSSID);
-
-					if (wifiConfig.allowedProtocols.get(WifiConfiguration.Protocol.RSN)) {
-            wifiObject.put("capabilities", "WPA2");
-        	} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)) {
-						wifiObject.put("capabilities", "WPA");
-					} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_EAP) || wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.IEEE8021X)) {
-						wifiObject.put("capabilities", "EAP");
-					} else if (wifiConfig.allowedGroupCiphers.get(WifiConfiguration.GroupCipher.WEP40)) {
-						wifiObject.put("capabilities", "WEP");
-					} else {
-						wifiObject.put("capabilities", "");
-					}
-
-					wifiArray.put(wifiObject);
-				}
-			}
-			promise.resolve(wifiArray.toString());
-		} catch (JSONException e) {
-			promise.reject(e.getMessage());
-		}
-	}
-
-	@ReactMethod
-	public void getCurrentNetworkInfo(final Promise promise) {
-		try {
-			WifiInfo wifiInfo = wifi.getConnectionInfo();
-			if (wifiInfo != null) {
-				WritableNativeMap wifiInfoObject = new WritableNativeMap();
-				String ssid = wifiInfo.getSSID();
+		List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
+		WritableNativeArray wifiArray = new WritableNativeArray();
+		for (WifiConfiguration wifiConfig : mWifiConfigList) {
+			WritableNativeMap wifiObject = new WritableNativeMap();
+			if (!wifiConfig.SSID.equals("")){
+				String ssid = wifiConfig.SSID;
 				if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
 					ssid = ssid.substring(1, ssid.length() - 1);
 				}
+				wifiObject.putString("ssid", ssid);
+				wifiObject.putString("bssid", wifiConfig.BSSID);
 
-				wifiInfoObject.putString("bssid", wifiInfo.getBSSID());
-				wifiInfoObject.putString("ssid", ssid);
-				wifiInfoObject.putString("macAddress", wifiInfo.getMacAddress());
-				wifiInfoObject.putString("ipAddress", longToIP(wifiInfo.getIpAddress()));
-				wifiInfoObject.putInt("rssi", wifiInfo.getRssi());
-				wifiInfoObject.putInt("linkSpeed", wifiInfo.getLinkSpeed());
-				
-				promise.resolve(wifiInfoObject);
-			} else {
-				promise.resolve(null);
+				if (wifiConfig.allowedProtocols.get(WifiConfiguration.Protocol.RSN)) {
+					wifiObject.putString("capabilities", "WPA2");
+				} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)) {
+					wifiObject.putString("capabilities", "WPA");
+				} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_EAP) || wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.IEEE8021X)) {
+					wifiObject.putString("capabilities", "EAP");
+				} else if (wifiConfig.allowedGroupCiphers.get(WifiConfiguration.GroupCipher.WEP40)) {
+					wifiObject.putString("capabilities", "WEP");
+				} else {
+					wifiObject.putString("capabilities", "");
+				}
+
+				wifiArray.pushMap(wifiObject);
 			}
-		} catch (Exception e) {
-			promise.reject("Error", e);
 		}
+		promise.resolve(wifiArray);
 	}
 
 	public static String longToIP(int longIp){
@@ -470,9 +434,9 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			// private Callback errorCallback;
 			private WifiManager wifi;
 			private Promise promise;
-			private HashMap<String, JSONObject> rememberedNetworks;
+			private HashMap<String, WritableNativeMap> rememberedNetworks;
 
-			public WifiReceiver(final WifiManager wifi, Promise promise, HashMap<String, JSONObject> rememberedNetworks) {
+			public WifiReceiver(final WifiManager wifi, Promise promise, HashMap<String, WritableNativeMap> rememberedNetworks) {
 				super();
 				// this.successCallback = successCallback;
 				// this.errorCallback = errorCallback;
@@ -488,28 +452,16 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 				// getReactApplicationContext().getCurrentActivity().registerReceiver
 				try {
 					List < ScanResult > results = this.wifi.getScanResults();
-					JSONArray wifiArray = new JSONArray();
+					WritableNativeArray wifiArray = new WritableNativeArray();
 
-					for (ScanResult result: results) {
-						JSONObject wifiObject = new JSONObject();
-						if(!result.SSID.equals("")){
-							try {
-		            wifiObject.put("SSID", result.SSID);
-		            wifiObject.put("BSSID", result.BSSID);
-		            wifiObject.put("capabilities", result.capabilities);
-		            wifiObject.put("frequency", result.frequency);
-		            wifiObject.put("level", result.level);
-		            wifiObject.put("timestamp", result.timestamp);
-								this.rememberedNetworks.put(result.BSSID, wifiObject);
-							} catch (JSONException e) {
-		          	this.promise.reject(e.getMessage());
-								return;
-							}
-							wifiArray.put(wifiObject);
-
+					for (ScanResult result : results) {
+						if (!result.SSID.equals("")){
+							WritableNativeMap wifiObject = nativeMapFromScanResult(result);
+							this.rememberedNetworks.put(result.BSSID, wifiObject);
+							wifiArray.pushMap(wifiObject);
 						}
 					}
-					this.promise.resolve(wifiArray.toString());
+					this.promise.resolve(wifiArray);
 					return;
 				} catch (IllegalViewOperationException e) {
 					this.promise.reject("ILLEGAL_VIEW_OPERATION", e.getMessage());
