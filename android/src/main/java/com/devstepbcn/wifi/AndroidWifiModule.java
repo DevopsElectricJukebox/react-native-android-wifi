@@ -70,7 +70,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		wifiObject.put("BSSID", result.BSSID);
 		wifiObject.put("capabilities", result.capabilities);
 		wifiObject.put("frequency", result.frequency);
-		wifiObject.put("level", result.level);
+		wifiObject.put("levelDb", result.level);
 		wifiObject.put("timestamp", result.timestamp);
 		return wifiObject;
 	}
