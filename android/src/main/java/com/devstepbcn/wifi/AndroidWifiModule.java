@@ -12,6 +12,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.shell.MainReactPackage;
 import com.facebook.soloader.SoLoader;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 
@@ -40,19 +41,21 @@ import java.util.List;
 import java.lang.Thread;
 import java.util.Map;
 
+class WifiNetworkObject extends HashMap<String, Object> {};
+
 public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	//WifiManager Instance
 	WifiManager wifi;
 	ReactApplicationContext context;
-	HashMap<String, WritableNativeMap> rememberedNetworks;
+	HashMap<String, WifiNetworkObject> rememberedNetworks;
 
 	//Constructor
 	public AndroidWifiModule(ReactApplicationContext reactContext) {
 		super(reactContext);
 		wifi = (WifiManager)reactContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 		context = (ReactApplicationContext) getReactApplicationContext();
-		rememberedNetworks = new HashMap<String, WritableNativeMap>();
+		rememberedNetworks = new HashMap<String, WifiNetworkObject>();
 	}
 
 	//Name for module register to use:
@@ -61,14 +64,14 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		return "AndroidWifiModule";
 	}
 
-	private WritableNativeMap nativeMapFromScanResult(ScanResult result) {
-		WritableNativeMap wifiObject = new WritableNativeMap();
-		wifiObject.putString("SSID", result.SSID);
-		wifiObject.putString("BSSID", result.BSSID);
-		wifiObject.putString("capabilities", result.capabilities);
-		wifiObject.putDouble("frequency", result.frequency);
-		wifiObject.putDouble("level", result.level);
-		wifiObject.putDouble("timestamp", result.timestamp);
+	private WifiNetworkObject networkObjectFromScanResult(ScanResult result) {
+		WifiNetworkObject wifiObject = new WifiNetworkObject();
+		wifiObject.put("SSID", result.SSID);
+		wifiObject.put("BSSID", result.BSSID);
+		wifiObject.put("capabilities", result.capabilities);
+		wifiObject.put("frequency", result.frequency);
+		wifiObject.put("level", result.level);
+		wifiObject.put("timestamp", result.timestamp);
 		return wifiObject;
 	}
 
@@ -78,10 +81,10 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		List<ScanResult> results = wifi.getScanResults();
 		WritableNativeArray wifiArray = new WritableNativeArray();
 		for (ScanResult result: results) {
-			WritableNativeMap wifiObject = new WritableNativeMap();
 			if(!result.SSID.equals("")){
-				wifiArray.pushMap(nativeMapFromScanResult(result));
-				this.rememberedNetworks.put(result.BSSID, wifiObject);
+				WifiNetworkObject object = networkObjectFromScanResult(result);
+				wifiArray.pushMap(Arguments.makeNativeMap(object));
+				this.rememberedNetworks.put(result.BSSID, object);
 			}
 		}
 		promise.resolve(wifiArray);
@@ -373,8 +376,8 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	@ReactMethod
 	public void getKnownNetworks(Promise promise) {
 		WritableNativeMap wifiObject = new WritableNativeMap();
-		for (HashMap.Entry<String, WritableNativeMap> network : this.rememberedNetworks.entrySet()) {
-			wifiObject.putMap(network.getKey(), network.getValue());
+		for (HashMap.Entry<String, WifiNetworkObject> network : this.rememberedNetworks.entrySet()) {
+			wifiObject.putMap(network.getKey(), Arguments.makeNativeMap(network.getValue()));
 		}
 		promise.resolve(wifiObject);
 	}
@@ -461,9 +464,9 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			// private Callback errorCallback;
 			private WifiManager wifi;
 			private Promise promise;
-			private HashMap<String, WritableNativeMap> rememberedNetworks;
+			private HashMap<String, WifiNetworkObject> rememberedNetworks;
 
-			public WifiReceiver(final WifiManager wifi, Promise promise, HashMap<String, WritableNativeMap> rememberedNetworks) {
+			public WifiReceiver(final WifiManager wifi, Promise promise, HashMap<String, WifiNetworkObject> rememberedNetworks) {
 				super();
 				// this.successCallback = successCallback;
 				// this.errorCallback = errorCallback;
@@ -473,7 +476,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
  			}
 
 			// This method call when number of wifi connections changed
-      public void onReceive(Context c, Intent intent) {
+      		public void onReceive(Context c, Intent intent) {
 				// LocalBroadcastManager.getInstance(c).unregisterReceiver(this);
 				c.unregisterReceiver(this);
 				// getReactApplicationContext().getCurrentActivity().registerReceiver
@@ -483,9 +486,9 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 					for (ScanResult result : results) {
 						if (!result.SSID.equals("")){
-							WritableNativeMap wifiObject = nativeMapFromScanResult(result);
+							WifiNetworkObject wifiObject = networkObjectFromScanResult(result);
 							this.rememberedNetworks.put(result.BSSID, wifiObject);
-							wifiArray.pushMap(wifiObject);
+							wifiArray.pushMap(Arguments.makeNativeMap(wifiObject));
 						}
 					}
 					this.promise.resolve(wifiArray);
