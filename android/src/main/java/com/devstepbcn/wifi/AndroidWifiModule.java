@@ -273,9 +273,10 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
     // If network not already in configured networks add new network
 		if ( updateNetwork == -1 ) {
-      updateNetwork = wifi.addNetwork(conf);
-      wifi.saveConfiguration();
+	updateNetwork = wifi.addNetwork(conf);
 		};
+
+    wifi.saveConfiguration();
 
     if ( updateNetwork == -1 ) {
       return -1;
