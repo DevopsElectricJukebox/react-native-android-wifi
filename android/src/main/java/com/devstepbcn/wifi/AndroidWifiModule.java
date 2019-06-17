@@ -261,13 +261,14 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 		//Remove the existing configuration for this netwrok
 		List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
-
 		int updateNetwork = -1;
 
-		for(WifiConfiguration wifiConfig : mWifiConfigList){
-			if(wifiConfig.SSID.equals(conf.SSID)){
-				conf.networkId = wifiConfig.networkId;
-				updateNetwork = wifi.updateNetwork(conf);
+		if (mWifiConfigList != null) {
+			for(WifiConfiguration wifiConfig : mWifiConfigList){
+				if(wifiConfig.SSID.equals(conf.SSID)){
+					conf.networkId = wifiConfig.networkId;
+					updateNetwork = wifi.updateNetwork(conf);
+				}
 			}
 		}
 
@@ -355,14 +356,16 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	//This method will remove the wifi network as per the passed SSID from the device list
 	@ReactMethod
 	public void removeWifiNetwork(String ssid, final Promise promise) {
-    List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
-    for (WifiConfiguration wifiConfig : mWifiConfigList) {
+		List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
+		if (mWifiConfigList != null) {
+			for (WifiConfiguration wifiConfig : mWifiConfigList) {
 				String comparableSSID = ('"' + ssid + '"'); //Add quotes because wifiConfig.SSID has them
-				if(wifiConfig.SSID.equals(comparableSSID)) {
+				if (wifiConfig.SSID.equals(comparableSSID)) {
 					wifi.removeNetwork(wifiConfig.networkId);
 					wifi.saveConfiguration();
 				}
-    }
+			}
+		}
 		promise.resolve(true);
 	}
 
@@ -387,29 +390,31 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	public void getConfiguredNetworks(Promise promise) {
 		List<WifiConfiguration> mWifiConfigList = wifi.getConfiguredNetworks();
 		WritableNativeArray wifiArray = new WritableNativeArray();
-		for (WifiConfiguration wifiConfig : mWifiConfigList) {
-			WritableNativeMap wifiObject = new WritableNativeMap();
-			if (!wifiConfig.SSID.equals("")){
-				String ssid = wifiConfig.SSID;
-				if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
-					ssid = ssid.substring(1, ssid.length() - 1);
-				}
-				wifiObject.putString("ssid", ssid);
-				wifiObject.putString("bssid", wifiConfig.BSSID);
+		if (mWifiConfigList != null) {
+			for (WifiConfiguration wifiConfig : mWifiConfigList) {
+				WritableNativeMap wifiObject = new WritableNativeMap();
+				if (!wifiConfig.SSID.equals("")){
+					String ssid = wifiConfig.SSID;
+					if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
+						ssid = ssid.substring(1, ssid.length() - 1);
+					}
+					wifiObject.putString("ssid", ssid);
+					wifiObject.putString("bssid", wifiConfig.BSSID);
 
-				if (wifiConfig.allowedProtocols.get(WifiConfiguration.Protocol.RSN)) {
-					wifiObject.putString("capabilities", "WPA2");
-				} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)) {
-					wifiObject.putString("capabilities", "WPA");
-				} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_EAP) || wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.IEEE8021X)) {
-					wifiObject.putString("capabilities", "EAP");
-				} else if (wifiConfig.allowedGroupCiphers.get(WifiConfiguration.GroupCipher.WEP40)) {
-					wifiObject.putString("capabilities", "WEP");
-				} else {
-					wifiObject.putString("capabilities", "");
-				}
+					if (wifiConfig.allowedProtocols.get(WifiConfiguration.Protocol.RSN)) {
+						wifiObject.putString("capabilities", "WPA2");
+					} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK)) {
+						wifiObject.putString("capabilities", "WPA");
+					} else if (wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_EAP) || wifiConfig.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.IEEE8021X)) {
+						wifiObject.putString("capabilities", "EAP");
+					} else if (wifiConfig.allowedGroupCiphers.get(WifiConfiguration.GroupCipher.WEP40)) {
+						wifiObject.putString("capabilities", "WEP");
+					} else {
+						wifiObject.putString("capabilities", "");
+					}
 
-				wifiArray.pushMap(wifiObject);
+					wifiArray.pushMap(wifiObject);
+				}
 			}
 		}
 		promise.resolve(wifiArray);
